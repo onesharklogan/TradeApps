@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pre-Flight Trade Log</title>
+    <style>
+        :root {
+            --bg: #0d1117;
+            --card: #161b22;
+            --text: #c9d1d9;
+            --accent: #58a6ff;
+            --green: #238636;
+            --red: #da3633;
+            --border: #30363d;
+        }
+        body {
+            font-family: sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: var(--card);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+        .step { margin-bottom: 15px; display: none; }
+        .active { display: block; animation: fadeIn 0.2s ease-in; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9rem; }
+        select, button {
+            width: 100%;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            background: #21262d;
+            color: white;
+            font-size: 1rem;
+        }
+        button {
+            background: var(--green);
+            cursor: pointer;
+            border: none;
+            margin-top: 10px;
+        }
+        button:hover { opacity: 0.9; }
+        table {
+            width: 100%;
+            max-width: 800px;
+            margin-top: 30px;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid var(--border);
+            text-align: center;
+        }
+        th { background: #161b22; }
+        .pos { color: #3fb950; font-weight: bold; }
+        .neg { color: #f85149; font-weight: bold; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2 style="margin-top:0">Pre-Flight Checklist</h2>
+
+    <div class="step active" id="s_bar">
+        <label>Bar Number (1-81)</label>
+        <select id="barNum" onchange="showNext('s_env')"></select>
+    </div>
+
+    <div class="step" id="s_env">
+        <label>Environment</label>
+        <select id="env" onchange="showNext('s_setup')">
+            <option value="">-- Select --</option>
+            <option value="Bull">Bull</option>
+            <option value="Bear">Bear</option>
+        </select>
+    </div>
+
+    <div class="step" id="s_setup">
+        <label>Setup Type</label>
+        <select id="setup" onchange="showNext('s_out')">
+            <option value="">-- Select --</option>
+            <option value="L1">L1</option>
+            <option value="FL2">FL2</option>
+        </select>
+    </div>
+
+    <div class="step" id="s_out">
+        <label>Outcome</label>
+        <select id="outcome">
+            <option value="">-- Select --</option>
+            <option value="+1">+1 (Winner)</option>
+            <option value="-1">-1 (Loser)</option>
+        </select>
+        <button onclick="logTrade()">Log Trade</button>
+    </div>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>Bar</th>
+            <th>Env</th>
+            <th>Setup</th>
+            <th>Outcome</th>
+        </tr>
+    </thead>
+    <tbody id="logBody"></tbody>
+</table>
+
+<script>
+    // Initialize Bar Numbers 1-81
+    const barSelect = document.getElementById('barNum');
+    barSelect.innerHTML = '<option value="">-- Select Bar --</option>';
+    for(let i=1; i<=81; i++) {
+        let opt = document.createElement('option');
+        opt.value = i; opt.innerHTML = i;
+        barSelect.appendChild(opt);
+    }
+
+    function showNext(id) {
+        document.getElementById(id).classList.add('active');
+    }
+
+    function logTrade() {
+        const bar = document.getElementById('barNum').value;
+        const env = document.getElementById('env').value;
+        const setup = document.getElementById('setup').value;
+        const out = document.getElementById('outcome').value;
+
+        if(!bar || !env || !setup || !out) return alert("Complete all steps!");
+
+        const table = document.getElementById('logBody');
+        const row = table.insertRow(0); // Add newest to top
+        
+        const outClass = out.includes('+1') ? 'pos' : 'neg';
+
+        row.innerHTML = `
+            <td>${bar}</td>
+            <td>${env}</td>
+            <td>${setup}</td>
+            <td class="${outClass}">${out}</td>
+        `;
+
+        resetChecklist();
+    }
+
+    function resetChecklist() {
+        document.querySelectorAll('.step').forEach((s, i) => {
+            if (i !== 0) s.classList.remove('active');
+        });
+        document.querySelectorAll('select').forEach(s => s.value = "");
+    }
+</script>
+
+</body>
+</html>
