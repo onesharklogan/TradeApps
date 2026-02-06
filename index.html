@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pre-Flight Trade Log</title>
+    <title>Daily Log</title>
     <style>
         :root {
             --bg: #0d1117;
@@ -14,155 +14,226 @@
             --red: #da3633;
             --border: #30363d;
         }
-        body {
-            font-family: sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .container {
-            width: 100%;
-            max-width: 600px;
-            background: var(--card);
-            padding: 20px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-        }
-        .step { margin-bottom: 15px; display: none; }
-        .active { display: block; animation: fadeIn 0.2s ease-in; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9rem; }
-        select, button {
-            width: 100%;
-            padding: 10px;
-            border-radius: 4px;
-            border: 1px solid var(--border);
-            background: #21262d;
-            color: white;
-            font-size: 1rem;
-        }
-        button {
-            background: var(--green);
-            cursor: pointer;
-            border: none;
-            margin-top: 10px;
-        }
-        button:hover { opacity: 0.9; }
-        table {
-            width: 100%;
-            max-width: 800px;
-            margin-top: 30px;
-            border-collapse: collapse;
-            font-size: 0.85rem;
-        }
-        th, td {
-            padding: 10px;
-            border: 1px solid var(--border);
-            text-align: center;
-        }
-        th { background: #161b22; }
-        .pos { color: #3fb950; font-weight: bold; }
-        .neg { color: #f85149; font-weight: bold; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        body { font-family: -apple-system, sans-serif; background-color: var(--bg); color: var(--text); padding: 10px; display: flex; flex-direction: column; align-items: center; }
+        .container { width: 100%; max-width: 500px; background: var(--card); padding: 15px; border-radius: 8px; border: 1px solid var(--border); box-sizing: border-box; }
+        .grid-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+        .input-group { margin-bottom: 12px; }
+        .conditional-group { background: #21262d; padding: 10px; border-radius: 6px; margin-bottom: 12px; display: none; }
+        label { display: block; margin-bottom: 4px; font-weight: bold; font-size: 0.85rem; color: #8b949e; }
+        select, input[type="text"], button { width: 100%; padding: 12px; border-radius: 4px; border: 1px solid var(--border); background: #21262d; color: white; font-size: 0.9rem; box-sizing: border-box; }
+        .checkbox-group { display: flex; align-items: center; gap: 10px; background: rgba(88, 166, 255, 0.05); padding: 10px; border-radius: 4px; margin-bottom: 8px; font-size: 0.85rem; border: 1px solid var(--border); }
+        input[type="checkbox"] { width: 20px; height: 20px; flex-shrink: 0; }
+        .btn-log { background: var(--green); cursor: pointer; border: none; font-weight: bold; margin-top: 5px; }
+        .btn-utility { background: #30363d; font-size: 0.75rem; padding: 8px; cursor: pointer; border: 1px solid var(--border); color: white; }
+        .remove-btn { color: var(--red); cursor: pointer; font-weight: bold; border: none; background: none; font-size: 1.1rem; padding: 0 5px; }
+        
+        #imgPreviewContainer { width: 100%; margin-top: 10px; border: 2px dashed var(--border); border-radius: 6px; text-align: center; padding: 10px; box-sizing: border-box; }
+        #previewImg { max-width: 100%; max-height: 200px; display: none; margin-top: 10px; border-radius: 4px; }
+        
+        table { width: 100%; max-width: 600px; margin-top: 10px; border-collapse: collapse; font-size: 0.75rem; }
+        th, td { padding: 8px; border: 1px solid var(--border); text-align: center; }
+        th { background: #161b22; color: #8b949e; }
+        .pos { color: var(--green); font-weight: bold; }
+        .neg { color: var(--red); font-weight: bold; }
+        .table-actions { width: 100%; max-width: 600px; display: flex; gap: 10px; margin-top: 25px; flex-wrap: wrap; }
+        canvas { display: none; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2 style="margin-top:0">Pre-Flight Checklist</h2>
+    <h3 style="margin: 0 0 15px 0; color: var(--accent); text-align: center;">Checklist</h3>
 
-    <div class="step active" id="s_bar">
-        <label>Bar Number (1-81)</label>
-        <select id="barNum" onchange="showNext('s_env')"></select>
+    <div class="grid-row">
+        <div>
+            <label>Entry Bar #</label>
+            <select id="entryBar"></select>
+        </div>
+        <div>
+            <label>Direction</label>
+            <select id="direction">
+                <option value="Bull">Bull</option>
+                <option value="Bear">Bear</option>
+            </select>
+        </div>
     </div>
 
-    <div class="step" id="s_env">
-        <label>Environment</label>
-        <select id="env" onchange="showNext('s_setup')">
-            <option value="">-- Select --</option>
-            <option value="Bull">Bull</option>
-            <option value="Bear">Bear</option>
+    <div class="input-group">
+        <label>Entry Type</label>
+        <select id="entryType" onchange="toggleLegFields()">
+            <option value="L2 Fade">Leg 2 Fade</option>
+            <option value="L1 TRE">Leg 1 TRE</option>
         </select>
     </div>
 
-    <div class="step" id="s_setup">
-        <label>Setup Type</label>
-        <select id="setup" onchange="showNext('s_out')">
-            <option value="">-- Select --</option>
-            <option value="L1">L1</option>
-            <option value="FL2">FL2</option>
-        </select>
+    <div id="leg1Fields" class="conditional-group">
+        <div class="grid-row" style="margin-bottom:0;">
+            <div><label>L1 Start</label><select id="l1Start"></select></div>
+            <div><label>L1 End</label><select id="l1End"></select></div>
+        </div>
     </div>
 
-    <div class="step" id="s_out">
-        <label>Outcome</label>
-        <select id="outcome">
-            <option value="">-- Select --</option>
-            <option value="+1">+1 (Winner)</option>
-            <option value="-1">-1 (Loser)</option>
-        </select>
-        <button onclick="logTrade()">Log Trade</button>
+    <div class="checkbox-group">
+        <input type="checkbox" id="commit">
+        <label for="commit" style="color:white; margin:0;">I commit to 1:1, no scale in, patient entries</label>
+    </div>
+
+    <div class="checkbox-group" id="mistakeContainer">
+        <input type="checkbox" id="mistakeCheck" onchange="toggleMistakeInput()">
+        <label for="mistakeCheck" style="color:white; margin:0;">Execution Mistake</label>
+    </div>
+    
+    <div id="mistakeInputGroup" class="input-group" style="display: none;">
+        <input type="text" id="mistakeNote" placeholder="Note mistake...">
+    </div>
+
+    <div id="imgPreviewContainer">
+        <span style="font-size: 0.8rem; color: #8b949e;">Click here & Paste Image (Ctrl+V)</span>
+        <img id="previewImg" src="" alt="Preview">
+    </div>
+
+    <div class="grid-row" style="margin-top:10px;">
+        <div><label>Outcome</label><select id="outcome"><option value="+1">+1 Win</option><option value="-1">-1 Loss</option></select></div>
+        <div style="display: flex; align-items: flex-end;"><button class="btn-log" onclick="logTrade()">LOG TRADE</button></div>
     </div>
 </div>
 
-<table>
+<div class="table-actions">
+    <button class="btn-utility" onclick="copyTable()">Copy Text</button>
+    <button class="btn-utility" onclick="downloadTxt()">Download .txt</button>
+    <button class="btn-utility" style="background: var(--accent); border:none;" onclick="downloadMergedImage()">Download Chart + Log</button>
+</div>
+
+<table id="tradeTable">
     <thead>
-        <tr>
-            <th>Bar</th>
-            <th>Env</th>
-            <th>Setup</th>
-            <th>Outcome</th>
-        </tr>
+        <tr><th>Bar</th><th>Type</th><th>Dir</th><th>Result</th><th>Notes</th><th>Del</th></tr>
     </thead>
     <tbody id="logBody"></tbody>
 </table>
 
+<canvas id="mergeCanvas"></canvas>
+
 <script>
-    // Initialize Bar Numbers 1-81
-    const barSelect = document.getElementById('barNum');
-    barSelect.innerHTML = '<option value="">-- Select Bar --</option>';
-    for(let i=1; i<=81; i++) {
-        let opt = document.createElement('option');
-        opt.value = i; opt.innerHTML = i;
-        barSelect.appendChild(opt);
+    const previewImg = document.getElementById('previewImg');
+    let currentPastedBlob = null;
+
+    // Populate Bars starting from 1 to 81
+    function fillBars(id) {
+        const sel = document.getElementById(id);
+        for(let i=1; i<=81; i++) {
+            let opt = document.createElement('option');
+            opt.value = i; opt.innerHTML = i;
+            sel.appendChild(opt);
+        }
+    }
+    ['entryBar', 'l1Start', 'l1End'].forEach(fillBars);
+
+    // Paste Image Logic
+    window.addEventListener('paste', e => {
+        const items = e.clipboardData.items;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+                currentPastedBlob = items[i].getAsFile();
+                const reader = new FileReader();
+                reader.onload = event => {
+                    previewImg.src = event.target.result;
+                    previewImg.style.display = 'block';
+                };
+                reader.readAsDataURL(currentPastedBlob);
+            }
+        }
+    });
+
+    function toggleLegFields() {
+        const type = document.getElementById('entryType').value;
+        document.getElementById('leg1Fields').style.display = (type === 'L1 TRE') ? 'block' : 'none';
     }
 
-    function showNext(id) {
-        document.getElementById(id).classList.add('active');
+    function toggleMistakeInput() {
+        const isChecked = document.getElementById('mistakeCheck').checked;
+        document.getElementById('mistakeInputGroup').style.display = isChecked ? 'block' : 'none';
     }
 
     function logTrade() {
-        const bar = document.getElementById('barNum').value;
-        const env = document.getElementById('env').value;
-        const setup = document.getElementById('setup').value;
-        const out = document.getElementById('outcome').value;
-
-        if(!bar || !env || !setup || !out) return alert("Complete all steps!");
-
-        const table = document.getElementById('logBody');
-        const row = table.insertRow(0); // Add newest to top
+        if(!document.getElementById('commit').checked) return alert("Check the commitment box!");
         
+        const table = document.getElementById('logBody');
+        const row = table.insertRow(0);
+        const out = document.getElementById('outcome').value;
         const outClass = out.includes('+1') ? 'pos' : 'neg';
+        const mistakeNote = document.getElementById('mistakeCheck').checked ? `Mistake: ${document.getElementById('mistakeNote').value || 'Unspecified'}` : '-';
 
         row.innerHTML = `
-            <td>${bar}</td>
-            <td>${env}</td>
-            <td>${setup}</td>
+            <td>${document.getElementById('entryBar').value}</td>
+            <td>${document.getElementById('entryType').value}</td>
+            <td>${document.getElementById('direction').value}</td>
             <td class="${outClass}">${out}</td>
+            <td>${mistakeNote}</td>
+            <td><button class="remove-btn" onclick="removeRow(this)">×</button></td>
         `;
-
-        resetChecklist();
+        document.getElementById('commit').checked = false;
     }
 
-    function resetChecklist() {
-        document.querySelectorAll('.step').forEach((s, i) => {
-            if (i !== 0) s.classList.remove('active');
+    function removeRow(btn) { btn.closest('tr').remove(); }
+
+    function getTableDataText() {
+        let text = "BAR | TYPE | DIR | RESULT | NOTES\n------------------------------------\n";
+        document.querySelectorAll("#logBody tr").forEach(row => {
+            let cols = row.querySelectorAll("td");
+            text += `${cols[0].innerText} | ${cols[1].innerText} | ${cols[2].innerText} | ${cols[3].innerText} | ${cols[4].innerText}\n`;
         });
-        document.querySelectorAll('select').forEach(s => s.value = "");
+        return text;
+    }
+
+    function copyTable() {
+        navigator.clipboard.writeText(getTableDataText()).then(() => alert("Copied!"));
+    }
+
+    function downloadTxt() {
+        const blob = new Blob([getTableDataText()], { type: 'text/plain' });
+        const a = document.createElement('a');
+        a.download = `trades_${new Date().toLocaleDateString()}.txt`;
+        a.href = URL.createObjectURL(blob);
+        a.click();
+    }
+
+    function downloadMergedImage() {
+        if (!previewImg.src) return alert("Paste an image first!");
+        
+        const canvas = document.getElementById('mergeCanvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        img.src = previewImg.src;
+
+        img.onload = () => {
+            const logLines = getTableDataText().split('\n');
+            const rowHeight = 30;
+            const padding = 60;
+            const extraHeight = logLines.length * rowHeight + padding;
+            
+            canvas.width = img.width;
+            canvas.height = img.height + extraHeight;
+
+            // Draw Background & Original Image
+            ctx.fillStyle = "white";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0);
+
+            // Draw Log Text
+            ctx.fillStyle = "black";
+            ctx.font = "bold 20px Courier New";
+            let y = img.height + 40;
+            logLines.forEach(line => {
+                ctx.fillText(line, 40, y);
+                y += rowHeight;
+            });
+
+            const link = document.createElement('a');
+            link.download = `trade_log_merged_${Date.now()}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+        };
     }
 </script>
-
 </body>
 </html>
