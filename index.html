@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daily Log</title>
+    <title>Pre-Flight Trade Log</title>
     <style>
         :root {
             --bg: #0d1117;
@@ -18,7 +18,6 @@
         .container { width: 100%; max-width: 500px; background: var(--card); padding: 15px; border-radius: 8px; border: 1px solid var(--border); box-sizing: border-box; }
         .grid-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
         .input-group { margin-bottom: 12px; }
-        .conditional-group { background: #21262d; padding: 10px; border-radius: 6px; margin-bottom: 12px; display: none; }
         label { display: block; margin-bottom: 4px; font-weight: bold; font-size: 0.85rem; color: #8b949e; }
         select, input[type="text"], button { width: 100%; padding: 12px; border-radius: 4px; border: 1px solid var(--border); background: #21262d; color: white; font-size: 0.9rem; box-sizing: border-box; }
         .checkbox-group { display: flex; align-items: center; gap: 10px; background: rgba(88, 166, 255, 0.05); padding: 10px; border-radius: 4px; margin-bottom: 8px; font-size: 0.85rem; border: 1px solid var(--border); }
@@ -42,7 +41,7 @@
 <body>
 
 <div class="container">
-    <h3 style="margin: 0 0 15px 0; color: var(--accent); text-align: center;">Checklist</h3>
+    <h3 style="margin: 0 0 15px 0; color: var(--accent); text-align: center;">Trade Pre-Flight</h3>
 
     <div class="grid-row">
         <div>
@@ -60,22 +59,15 @@
 
     <div class="input-group">
         <label>Entry Type</label>
-        <select id="entryType" onchange="toggleLegFields()">
+        <select id="entryType">
             <option value="L2 Fade">Leg 2 Fade</option>
             <option value="L1 TRE">Leg 1 TRE</option>
         </select>
     </div>
 
-    <div id="leg1Fields" class="conditional-group">
-        <div class="grid-row" style="margin-bottom:0;">
-            <div><label>L1 Start</label><select id="l1Start"></select></div>
-            <div><label>L1 End</label><select id="l1End"></select></div>
-        </div>
-    </div>
-
     <div class="checkbox-group">
         <input type="checkbox" id="commit">
-        <label for="commit" style="color:white; margin:0;">I commit to 1:1, no scale in, patient entries</label>
+        <label for="commit" style="color:white; margin:0;">I commit to 1:1, no scale in</label>
     </div>
 
     <div class="checkbox-group" id="mistakeContainer">
@@ -114,10 +106,9 @@
 <canvas id="mergeCanvas"></canvas>
 
 <script>
+    let trades = [];
     const previewImg = document.getElementById('previewImg');
-    let currentPastedBlob = null;
 
-    // Populate Bars starting from 1 to 81
     function fillBars(id) {
         const sel = document.getElementById(id);
         for(let i=1; i<=81; i++) {
@@ -126,61 +117,81 @@
             sel.appendChild(opt);
         }
     }
-    ['entryBar', 'l1Start', 'l1End'].forEach(fillBars);
+    fillBars('entryBar');
 
-    // Paste Image Logic
     window.addEventListener('paste', e => {
         const items = e.clipboardData.items;
         for (let i = 0; i < items.length; i++) {
             if (items[i].type.indexOf('image') !== -1) {
-                currentPastedBlob = items[i].getAsFile();
                 const reader = new FileReader();
                 reader.onload = event => {
                     previewImg.src = event.target.result;
                     previewImg.style.display = 'block';
                 };
-                reader.readAsDataURL(currentPastedBlob);
+                reader.readAsDataURL(items[i].getAsFile());
             }
         }
     });
 
-    function toggleLegFields() {
-        const type = document.getElementById('entryType').value;
-        document.getElementById('leg1Fields').style.display = (type === 'L1 TRE') ? 'block' : 'none';
-    }
-
     function toggleMistakeInput() {
-        const isChecked = document.getElementById('mistakeCheck').checked;
-        document.getElementById('mistakeInputGroup').style.display = isChecked ? 'block' : 'none';
+        document.getElementById('mistakeInputGroup').style.display = document.getElementById('mistakeCheck').checked ? 'block' : 'none';
     }
 
     function logTrade() {
-        if(!document.getElementById('commit').checked) return alert("Check the commitment box!");
+        if(!document.getElementById('commit').checked) return alert("Check commitment box!");
         
-        const table = document.getElementById('logBody');
-        const row = table.insertRow(0);
-        const out = document.getElementById('outcome').value;
-        const outClass = out.includes('+1') ? 'pos' : 'neg';
-        const mistakeNote = document.getElementById('mistakeCheck').checked ? `Mistake: ${document.getElementById('mistakeNote').value || 'Unspecified'}` : '-';
+        const trade = {
+            id: Date.now(),
+            bar: parseInt(document.getElementById('entryBar').value),
+            type: document.getElementById('entryType').value,
+            dir: document.getElementById('direction').value,
+            out: document.getElementById('outcome').value,
+            note: document.getElementById('mistakeCheck').checked ? `Mistake: ${document.getElementById('mistakeNote').value || 'Unspecified'}` : '-'
+        };
 
-        row.innerHTML = `
-            <td>${document.getElementById('entryBar').value}</td>
-            <td>${document.getElementById('entryType').value}</td>
-            <td>${document.getElementById('direction').value}</td>
-            <td class="${outClass}">${out}</td>
-            <td>${mistakeNote}</td>
-            <td><button class="remove-btn" onclick="removeRow(this)">×</button></td>
-        `;
+        trades.push(trade);
+        trades.sort((a, b) => a.bar - b.bar);
+        renderTable();
+
         document.getElementById('commit').checked = false;
+        document.getElementById('mistakeCheck').checked = false;
+        document.getElementById('mistakeNote').value = '';
+        toggleMistakeInput();
     }
 
-    function removeRow(btn) { btn.closest('tr').remove(); }
+    function renderTable() {
+        const tbody = document.getElementById('logBody');
+        tbody.innerHTML = '';
+        trades.forEach(t => {
+            const row = tbody.insertRow();
+            row.innerHTML = `
+                <td>${t.bar}</td>
+                <td>${t.type}</td>
+                <td>${t.dir}</td>
+                <td class="${t.out.includes('+1') ? 'pos' : 'neg'}">${t.out}</td>
+                <td>${t.note}</td>
+                <td><button class="remove-btn" onclick="removeTrade(${t.id})">×</button></td>
+            `;
+        });
+    }
+
+    function removeTrade(id) {
+        trades = trades.filter(t => t.id !== id);
+        renderTable();
+    }
+
+    function getFormattedDate() {
+        const d = new Date();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        const yyyy = d.getFullYear();
+        return `${mm}_${dd}_${yyyy}`;
+    }
 
     function getTableDataText() {
-        let text = "BAR | TYPE | DIR | RESULT | NOTES\n------------------------------------\n";
-        document.querySelectorAll("#logBody tr").forEach(row => {
-            let cols = row.querySelectorAll("td");
-            text += `${cols[0].innerText} | ${cols[1].innerText} | ${cols[2].innerText} | ${cols[3].innerText} | ${cols[4].innerText}\n`;
+        let text = `TRADING LOG - ${getFormattedDate()}\nBAR | TYPE | DIR | RESULT | NOTES\n------------------------------------\n`;
+        trades.forEach(t => {
+            text += `${t.bar.toString().padStart(2, ' ')}  | ${t.type.padEnd(8, ' ')} | ${t.dir.padEnd(4, ' ')} | ${t.out.padEnd(6, ' ')} | ${t.note}\n`;
         });
         return text;
     }
@@ -192,44 +203,31 @@
     function downloadTxt() {
         const blob = new Blob([getTableDataText()], { type: 'text/plain' });
         const a = document.createElement('a');
-        a.download = `trades_${new Date().toLocaleDateString()}.txt`;
+        a.download = `Trades_${getFormattedDate()}.txt`;
         a.href = URL.createObjectURL(blob);
         a.click();
     }
 
     function downloadMergedImage() {
-        if (!previewImg.src) return alert("Paste an image first!");
-        
+        if (!previewImg.src) return alert("Paste image first!");
         const canvas = document.getElementById('mergeCanvas');
         const ctx = canvas.getContext('2d');
         const img = new Image();
         img.src = previewImg.src;
-
         img.onload = () => {
             const logLines = getTableDataText().split('\n');
             const rowHeight = 30;
-            const padding = 60;
-            const extraHeight = logLines.length * rowHeight + padding;
-            
             canvas.width = img.width;
-            canvas.height = img.height + extraHeight;
-
-            // Draw Background & Original Image
+            canvas.height = img.height + (logLines.length * rowHeight) + 60;
             ctx.fillStyle = "white";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(img, 0, 0);
-
-            // Draw Log Text
             ctx.fillStyle = "black";
             ctx.font = "bold 20px Courier New";
             let y = img.height + 40;
-            logLines.forEach(line => {
-                ctx.fillText(line, 40, y);
-                y += rowHeight;
-            });
-
+            logLines.forEach(line => { ctx.fillText(line, 40, y); y += rowHeight; });
             const link = document.createElement('a');
-            link.download = `trade_log_merged_${Date.now()}.png`;
+            link.download = `Trades_${getFormattedDate()}.png`;
             link.href = canvas.toDataURL();
             link.click();
         };
